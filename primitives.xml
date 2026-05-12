@@ -1,0 +1,8 @@
+<>
+  <Text x="0" y="0" w="100%" h="20px">#3: Primitives Components</Text>
+  <Rectangle x="100px" y="100px" w="50px" h="50px" mode="fill" />
+  <Circle cx="200px" cy="80%" r="120" mode="line" />
+  <Text x="50%" y="115px">Hello, World!</Text>
+  <NineSlice src="assets/9slice.png" x="250px" y="100px" w="100px" h="50px" sliceLeft="3" sliceTop="3" sliceRight="3" sliceBottom="3" />
+  <Sprite src="assets/demo-sprite.png" x="80%" y="100px" />
+</>
