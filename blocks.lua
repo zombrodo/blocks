@@ -157,7 +157,7 @@ end
 
 local Component = Object:extend()
 
-function Component:new(componentDef, text)
+function Component:new(componentDef)
   Component.super.new(self)
 
   self.attributes = {}
@@ -271,8 +271,8 @@ local ComponentRegistry = Registry()
 
 local Fragment = Component:extend()
 
-function Fragment:new(componentDef, text)
-  Fragment.super.new(self, componentDef, text)
+function Fragment:new(componentDef)
+  Fragment.super.new(self, componentDef)
   self.type = "Fragment"
 end
 
@@ -363,33 +363,28 @@ local function parseTextSegment(text)
   return TextSegment(result)
 end
 
-local function currentPath()
-  local str = debug.getinfo(2, "S").source:sub(2)
-  return str:match("(.*/)") or ""
-end
-
-local function loadComponentRelative(tag)
-  local relativeComponent = currentPath() .. string.lower(tag) .. ".xml"
+local function loadComponentRelative(tag, basePath)
+  local relativeComponent = basePath .. string.lower(tag) .. ".xml"
 
   if love.filesystem.getInfo(relativeComponent) then
     return Blocks.parse(relativeComponent)
   end
 end
 
-local function createNode(tag, attributes, text)
+local function createNode(tag, attributes, context)
   local constructor = ComponentRegistry:get(tag)
   if not constructor then
-    local relativeComponent = loadComponentRelative(tag)
+    local relativeComponent = loadComponentRelative(tag, context.basePath)
     if relativeComponent then
       return relativeComponent
     end
     error("Unknown component " .. tag)
   end
 
-  return constructor(attributes, text)
+  return constructor(attributes)
 end
 
-function XMLParser.parse(xmlString)
+function XMLParser.parse(xmlString, context)
   xmlString = trim(xmlString)
   xmlString = xmlString:gsub("</>", "</Fragment>"):gsub("<>", "<Fragment>")
 
@@ -442,7 +437,7 @@ function XMLParser.parse(xmlString)
       end
 
       local attributes = parseAttributes(attrString)
-      local node = createNode(tagName, attributes)
+      local node = createNode(tagName, attributes, context)
 
       if #stack > 0 then
         local parent = stack[#stack]
@@ -463,7 +458,7 @@ function XMLParser.parse(xmlString)
       end
 
       local attributes = parseAttributes(attrString)
-      local node = createNode(tagName, attributes)
+      local node = createNode(tagName, attributes, context)
 
       if #stack > 0 then
         local parent = stack[#stack]
@@ -516,8 +511,8 @@ end
 
 local Text = Component:extend()
 
-function Text:new(componentDef, text)
-  Text.super.new(self, componentDef, text)
+function Text:new(componentDef)
+  Text.super.new(self, componentDef)
   self.type = "Text"
 end
 
@@ -559,8 +554,8 @@ ComponentRegistry:add("text", Text)
 
 local Rectangle = Component:extend()
 
-function Rectangle:new(componentDef, text)
-  Rectangle.super.new(self, componentDef, text)
+function Rectangle:new(componentDef)
+  Rectangle.super.new(self, componentDef)
   self.type = "Rectangle"
 
   self.mode = componentDef.mode or "line"
@@ -581,8 +576,8 @@ ComponentRegistry:add("rect", Rectangle)
 
 local Circle = Component:extend()
 
-function Circle:new(componentDef, text)
-  Circle.super.new(self, componentDef, text)
+function Circle:new(componentDef)
+  Circle.super.new(self, componentDef)
   self.type          = "Circle"
 
   self.attributes.cx = componentDef.cx
@@ -621,8 +616,8 @@ ComponentRegistry:add("circle", Circle)
 
 local NineSlice = Component:extend()
 
-function NineSlice:new(componentDef, text)
-  NineSlice.super.new(self, componentDef, text)
+function NineSlice:new(componentDef)
+  NineSlice.super.new(self, componentDef)
   self.type = "NineSlice"
 
   self.imagePath = componentDef.src
@@ -807,8 +802,8 @@ ComponentRegistry:add("9slice", NineSlice)
 
 local Sprite = Component:extend()
 
-function Sprite:new(componentDef, text)
-  Sprite.super.new(self, componentDef, text)
+function Sprite:new(componentDef)
+  Sprite.super.new(self, componentDef)
 
   self.spritePath = componentDef.src
   if not self.spritePath then
@@ -838,7 +833,17 @@ ComponentRegistry:add("sprite", Sprite)
 
 function Blocks.parse(xmlFile)
   local contents = love.filesystem.read(xmlFile)
-  return XMLParser.parse(contents)
+
+  if not contents then
+    error("Could not read file: " .. xmlFile)
+  end
+
+  local context = {
+    filePath = xmlFile,
+    basePath = string.match(xmlFile, "(.*/)") or ""
+  }
+
+  return XMLParser.parse(contents, context)
 end
 
 function Blocks.load(xmlFile)

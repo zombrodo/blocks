@@ -5,9 +5,9 @@ local ui = {}
 local uiPage = 1
 
 function love.load()
-  ui[1] = Blocks.load("basic.xml")
-  ui[2] = Blocks.load("primitives.xml")
-  ui[3] = Blocks.load("composition.xml")
+  ui[1] = Blocks.load("examples/basic.xml")
+  ui[2] = Blocks.load("examples/primitives.xml")
+  ui[3] = Blocks.load("examples/composition.xml")
 end
 
 function love.update(dt)
