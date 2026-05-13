@@ -180,15 +180,22 @@ function Component:new(componentDef)
   self.font = love.graphics.getFont()
 end
 
-function Component:realise()
+function Component:resolveBox()
   self.x = applyLayout("x", self)
   self.y = applyLayout("y", self)
   self.w = applyLayout("w", self)
   self.h = applyLayout("h", self)
+end
 
+function Component:realiseChildren()
   for i, child in ipairs(self.children) do
     child:realise()
   end
+end
+
+function Component:realise()
+  self:resolveBox()
+  self:realiseChildren()
 end
 
 function Component:addChild(child)
@@ -276,7 +283,7 @@ function Fragment:new(componentDef)
   self.type = "Fragment"
 end
 
-function Fragment:realise()
+function Fragment:resolveBox()
   if self.parent then
     self.x = self.parent.x
     self.y = self.parent.y
@@ -287,10 +294,6 @@ function Fragment:realise()
     self.y = 0
     self.w = love.graphics.getWidth()
     self.h = love.graphics.getHeight()
-  end
-
-  for _, child in ipairs(self.children) do
-    child:realise()
   end
 end
 
@@ -516,12 +519,7 @@ function Text:new(componentDef)
   self.type = "Text"
 end
 
-function Text:realise()
-  self.x = applyLayout("x", self)
-  self.y = applyLayout("y", self)
-  self.w = applyLayout("w", self)
-  self.h = applyLayout("h", self)
-
+function Text:realiseChildren()
   local cursorX = self.x
   for _, child in ipairs(self.children) do
     child.x = cursorX
@@ -586,7 +584,7 @@ function Circle:new(componentDef)
   self.mode          = componentDef.mode or "line"
 end
 
-function Circle:realise()
+function Circle:resolveBox()
   local cxValue, cxUnit = parseValue(self.attributes.cx)
   local cyValue, cyUnit = parseValue(self.attributes.cy)
 
@@ -597,10 +595,6 @@ function Circle:realise()
   self.y = self.cy - self.r
   self.w = self.r * 2
   self.h = self.r * 2
-
-  for _, child in ipairs(self.children) do
-    child:realise()
-  end
 end
 
 function Circle:draw()
