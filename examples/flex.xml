@@ -1,5 +1,5 @@
 <>
-  <Text x="0" y="0" w="100%" h="20px">#4: Flex</Text>
+  <Text x="0" y="0">#4: Flex</Text>
 
   <Flex x="10%" y="10%" w="80%" h="60px"
         direction="row" gap="2%" justify="space-between" align="center">
