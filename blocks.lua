@@ -151,6 +151,24 @@ local function applyLayout(attribute, component)
   error("Unknown attribute " .. attribute)
 end
 
+local function expandSlot(node, slotContent)
+  for i, child in ipairs(node.children) do
+    if child.type == "Slot" then
+      table.remove(node.chidlren, i)
+      for j = #slotContent, 1, -1 do
+        slotContent[j].parent = node
+        table.insert(node.children, i, slotContent[j])
+      end
+      return true
+    end
+
+    if expandSlot(child, slotContent) then
+      return true
+    end
+  end
+  return false
+end
+
 -- =============================================================================
 -- Base Component
 -- =============================================================================
@@ -175,6 +193,23 @@ function Component:new(componentDef)
   self.font = love.graphics.getFont()
 end
 
+function Component:expandTemplate(path)
+  local slotContent = self.children
+  self.children = {}
+
+  local template = Blocks.parse(path)
+  if not template then
+    error("Unable to parse template: " .. path)
+  end
+  for _, node in ipairs(template.chldren) do
+    self:addChild(node)
+  end
+
+  if #slotContent > 0 then
+    expandSlot(self, slotContent)
+  end
+end
+
 function Component:resolveBox()
   self.x = applyLayout("x", self)
   self.y = applyLayout("y", self)
@@ -189,6 +224,11 @@ function Component:realiseChildren()
 end
 
 function Component:realise()
+  if self.template and not self._expanded then
+    self:expandTemplate(self.template)
+    self._expanded = true
+  end
+
   self:resolveBox()
   self:realiseChildren()
 end
@@ -266,6 +306,19 @@ function Registry:get(component)
 end
 
 local ComponentRegistry = Registry()
+
+-- =============================================================================
+-- Slot
+-- =============================================================================
+
+local Slot = Component:extend()
+
+function Slot:new(componentDef)
+  Slot.super.new(self, componentDef)
+  self.type = "Slot"
+end
+
+ComponentRegistry:add("slot", Slot)
 
 -- =============================================================================
 -- Fragment
