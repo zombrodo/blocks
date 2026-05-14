@@ -160,13 +160,8 @@ local Component = Object:extend()
 function Component:new(componentDef)
   Component.super.new(self)
 
-  self.attributes = {}
+  self.attributes = componentDef
   self.type = "Component"
-
-  self.attributes.x = componentDef.x
-  self.attributes.y = componentDef.y
-  self.attributes.w = componentDef.w
-  self.attributes.h = componentDef.h
 
   self.x = 0
   self.y = 0
@@ -820,6 +815,146 @@ function Sprite:draw()
 end
 
 ComponentRegistry:add("sprite", Sprite)
+
+-- =====================================
+-- Flex
+-- =====================================
+
+local FLEX_AXIS = {
+  row = {
+    main = "x",
+    cross = "y",
+    mainSize = "w",
+    crossSize = "h",
+    getMain = "getWidth",
+    getCross = "getHeight",
+  },
+  column = {
+    main = "y",
+    cross = "x",
+    mainSize = "h",
+    crossSize = "w",
+    getMain = "getHeight",
+    getCross = "getWidth",
+  }
+}
+
+local function getAxisValue(component, func)
+  if component[func] then
+    return component[func](component)
+  end
+
+  return 0
+end
+
+local function resolveBasis(component, axis, flexContainer)
+  local raw = component.attributes.basis
+  if not raw then
+    return getAxisValue(component, axis.getMain)
+  end
+
+  local value, unit = parseValue(raw)
+  if unit == "%" then
+    return flexContainer[axis.mainSize] * value / 100
+  end
+  return value
+end
+
+local Flex = Component:extend()
+
+function Flex:new(componentDef)
+  Flex.super.new(self, componentDef)
+
+  self.type = "Flex"
+  self.direction = componentDef.direction or "row"
+  self.justify = componentDef.justify or "start"
+  self.align = componentDef.align or "start"
+  self.gap = componentDef.gap
+end
+
+function Flex:realiseChildren()
+  if #self.children == 0 then
+    return
+  end
+
+  local axis = FLEX_AXIS[self.direction]
+
+  local basis = {}
+  local totalBasis = 0
+  local grow = {}
+  local totalGrow = 0
+
+  for i, child in ipairs(self.children) do
+    local growVal = tonumber(child.attributes.grow) or 0
+    grow[i] = growVal
+    totalGrow = totalGrow + growVal
+
+    local basisVal = resolveBasis(child, axis, self)
+    basis[i] = basisVal
+    totalBasis = totalBasis + basisVal
+  end
+
+  local gapValue, gapUnit = parseValue(self.gap)
+  local gap = gapValue
+  if gapUnit == "%" then
+    gap = (self[axis.mainSize] * gapValue) / 100
+  end
+
+  local totalGap = gap * (#self.children - 1)
+  local leftover = self[axis.mainSize] - totalGap - totalBasis
+
+  if totalGrow > 0 and leftover > 0 then
+    for i = 1, #self.children do
+      if grow[i] > 0 then
+        basis[i] = basis[i] + leftover * (grow[i] / totalGrow)
+      end
+    end
+  end
+
+  local cursor = self[axis.main]
+  local stepGap = gap
+
+  if leftover > 0 then
+    if self.justify == "center" then
+      cursor = cursor + leftover / 2
+    elseif self.justify == "end" then
+      cursor = cursor + leftover
+    elseif self.justify == "space-between" and #self.children > 1 then
+      stepGap = gap + leftover / (#self.children - 1)
+    elseif self.justify == "space-around" then
+      local pad = leftover / (2 * self.children)
+      cursor    = cursor + pad
+      stepGap   = gap + 2 * pad
+    end
+  end
+
+  for i, child in ipairs(self.children) do
+    child[axis.main]     = cursor
+    child[axis.mainSize] = basis[i]
+
+    if self.align == "stretch" then
+      child[axis.cross]     = self[axis.cross]
+      child[axis.crossSize] = self[axis.crossSize]
+    else
+      local crossSize = getAxisValue(child, axis.getCross)
+      if crossSize == 0 then crossSize = self[axis.crossSize] end
+
+      if self.align == "center" then
+        child[axis.cross] = self[axis.cross] + (self[axis.crossSize] - crossSize) / 2
+      elseif self.align == "end" then
+        child[axis.cross] = self[axis.cross] + self[axis.crossSize] - crossSize
+      else
+        child[axis.cross] = self[axis.cross]
+      end
+      child[axis.crossSize] = crossSize
+    end
+
+    child:realiseChildren()
+    cursor = cursor + basis[i] + stepGap
+  end
+end
+
+ComponentRegistry:add("flex", Flex)
 
 -- =============================================================================
 -- Entrypoint

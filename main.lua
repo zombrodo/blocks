@@ -8,6 +8,7 @@ function love.load()
   ui[1] = Blocks.load("examples/basic.xml")
   ui[2] = Blocks.load("examples/primitives.xml")
   ui[3] = Blocks.load("examples/composition.xml")
+  ui[4] = Blocks.load("examples/flex.xml")
 end
 
 function love.update(dt)

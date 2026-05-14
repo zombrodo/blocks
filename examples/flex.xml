@@ -1,0 +1,31 @@
+<>
+  <Text x="0" y="0" w="100%" h="20px">#4: Flex</Text>
+
+  <Flex x="10%" y="10%" w="80%" h="60px"
+        direction="row" gap="2%" justify="space-between" align="center">
+    <Rect basis="80px" mode="fill" />
+    <Rect basis="10%" mode="fill" />
+    <Rect basis="80px" mode="fill" />
+  </Flex>
+
+  <Flex x="10%" y="30%" w="80%" h="60px"
+        direction="row" gap="10px" align="stretch">
+    <Rect basis="50px" mode="line" />
+    <Rect grow="1" mode="line" />
+    <Rect basis="50px" mode="line" />
+  </Flex>
+
+  <Flex x="10%" y="50%" w="40%" h="40%"
+        direction="column" gap="10px" align="stretch">
+    <Rect basis="20%" mode="line" />
+    <Rect grow="1" mode="line" />
+    <Rect basis="20%" mode="line" />
+  </Flex>
+
+  <Flex x="55%" y="50%" w="35%" h="40%"
+        direction="column" gap="5%" justify="center" align="center">
+    <Rect basis="40px" mode="fill" />
+    <Rect basis="40px" mode="fill" />
+    <Rect basis="40px" mode="fill" />
+  </Flex>
+</>
