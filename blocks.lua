@@ -181,14 +181,24 @@ local Component = Object:extend()
 
 function Component:new(componentDef)
   Component.super.new(self)
+  self.type = "Component"
 
   self.attributes = componentDef
-  self.type = "Component"
+  self.attributeTemplates = {}
+  for k, v in pairs(componentDef) do
+    if v:find("{%w+}") then
+      self.attributeTemplates[k] = v
+    end
+  end
 
   self.x = 0
   self.y = 0
   self.w = 0
   self.h = 0
+
+  if componentDef.id then
+    self.id = componentDef.id
+  end
 
   self.children = {}
   self.parent = nil
@@ -196,8 +206,67 @@ function Component:new(componentDef)
   self.state = {}
   self.listeners = {}
 
+  self.isExpanded = false
+  self.isDirty = false
+
   -- TODO: This probably belongs in some sorta styling mechanism, rather than here.
   self.font = love.graphics.getFont()
+end
+
+-- FIXME: Some scope boundary would be kinda nice here - I feel like
+-- navigating up the tree is not the right answer
+function Component:lookup(key)
+  local node = self
+  while node do
+    if node.state[key] ~= nil then
+      return node.state[key]
+    end
+    node = node.parent
+  end
+end
+
+-- FIXME: I don't like this either. Probably some magic with __newindex we can
+-- use to automagically pick up on changes. Either way, still don't like this.
+function Component:set(key, value)
+  if self.state[key] == value then
+    return
+  end
+
+  self.state[key] = value
+  self[key] = value
+
+  self:emit(key, value)
+  self:invalidate()
+end
+
+-- FIXME: the third horseman that I don't like. I think we can add some smarts
+-- to not invalidate the entire tree...
+function Component:invalidate()
+  local node = self
+  while node.parent do
+    node = node.parent
+  end
+  node.isDirty = true
+end
+
+function Component:resolveBindings()
+  if not self.attributeTemplates then
+    return
+  end
+
+  for attr, template in pairs(self.attributeTemplates) do
+    local realisedValue = template:gsub("{(%w+)}", function(key)
+      return tostring(self:lookup(key) or "")
+    end)
+    self.attributes[attr] = realisedValue
+  end
+end
+
+function Component:resolveAllBindings()
+  self:resolveBindings()
+  for _, child in ipairs(self.children) do
+    child:resolveAllBindings()
+  end
 end
 
 function Component:expandTemplate(path)
@@ -236,9 +305,14 @@ function Component:realiseChildren()
 end
 
 function Component:realise()
-  if self.template and not self._expanded then
+  if self.template and not self.isExpanded then
     self:expandTemplate(self.template)
-    self._expanded = true
+    self.isExpanded = true
+  end
+
+  -- FIXME: hmm.
+  if not self.parent then
+    self:resolveAllBindings()
   end
 
   self:resolveBox()
@@ -328,13 +402,16 @@ function Component:hook()
     local node = hit
     while node do
       if node.listeners["click"] then
-        if node:emit("click", x, y) == false then
+        if node:emit("click", hit, x, y) == false then
           break
         end
       end
       node = node.parent
     end
-    oldMousePressed(x, y, button)
+
+    if oldMousePressed then
+      oldMousePressed(x, y, button)
+    end
   end
 end
 
@@ -437,6 +514,15 @@ function TextSegment:new(text)
   TextSegment.super.new(self, {})
   self.type = "TextSegment"
   self.text = text
+  self.template = text
+end
+
+function TextSegment:resolveBindings()
+  local resolvedValue = self.template:gsub("{(%w+)}", function(key)
+    return self:lookup(key) or ""
+  end)
+
+  self.text = resolvedValue
 end
 
 function TextSegment:getWidth()

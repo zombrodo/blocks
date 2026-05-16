@@ -13,11 +13,9 @@ local function loadCounter()
     error("Unable to load counter-demo.xml")
   end
 
-  print(tree)
-
   local counter = tree:find("counter")
 
-  counter:on("click", counter.onClick)
+  counter:on("click", function(hit) counter:onClick(hit) end)
 
   tree:hook()
 
@@ -33,6 +31,11 @@ function love.load()
 end
 
 function love.update(dt)
+  ui[uiPage]:update(dt)
+  if ui[uiPage].isDirty then
+    ui[uiPage]:realise()
+    ui[uiPage].isDirty = false
+  end
 end
 
 function love.draw()

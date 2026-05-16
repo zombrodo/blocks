@@ -2,8 +2,9 @@
 
 * [x] Flexbox
 * [ ] Styling Configuration
-* [ ] Variables + Rerender
+* [x] Variables + Rerender
 * [ ] Text wrapping / reflowing
+* [x] Event Handling
 * [ ] Animations
 * [ ] Root Component (inherent Fragment? Scene object? Something else?)
 * [ ] Review Circle component?
