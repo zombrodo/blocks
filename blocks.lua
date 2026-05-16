@@ -1092,7 +1092,7 @@ function Flex:new(componentDef)
   self.direction = componentDef.direction or "row"
   self.justify = componentDef.justify or "start"
   self.align = componentDef.align or "start"
-  self.gap = componentDef.gap
+  self.gap = componentDef.gap or "0px"
 end
 
 function Flex:realiseChildren()
