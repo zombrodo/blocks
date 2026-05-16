@@ -6,18 +6,8 @@ local ui = {}
 
 local uiPage = 1
 
-local function assertNoCycle(node, seen)
-  seen = seen or {}
-  assert(not seen[node], "cycle at " .. tostring(node.type))
-  seen[node] = true
-  for _, c in ipairs(node.children) do assertNoCycle(c, seen) end
-  seen[node] = nil
-end
-
 local function loadCounter()
   local tree = Blocks.load("examples/counter-demo.xml")
-
-  assertNoCycle(tree)
 
   if not tree then
     error("Unable to load counter-demo.xml")

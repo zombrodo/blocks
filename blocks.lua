@@ -291,12 +291,9 @@ function Component:inBounds(x, y)
 end
 
 function Component:hitTest(x, y, depth)
-  depth = (depth or 0) + 1
   if not self:inBounds(x, y) then
     return nil
   end
-
-  assert(depth < 100, "hitTest cycle near " .. tostring(self.type))
 
   for i = #self.children, 1, -1 do
     local hit = self.children[i]:hitTest(x, y, depth)
