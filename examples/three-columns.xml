@@ -1,0 +1,21 @@
+<Flex>
+  <Component basis="25%">
+    <Rect mode="line" grow="1">
+      <Text>First Column</Text>
+    </Rect>
+  </Component>
+
+  <Component basis="50%">
+    <Flex direction="column" align="center">
+      <Rect mode="line" grow="1">
+        <Text>Second Column</Text>
+      </Rect>
+    </Flex>
+  </Component>
+
+  <Component basis="25%">
+    <Rect mode="line" grow="1">
+      <Text>Third Column</Text>
+    </Rect>
+  </Component>
+</Flex>

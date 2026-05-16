@@ -27,7 +27,8 @@ function love.load()
   ui[2] = Blocks.load("examples/primitives.xml")
   ui[3] = Blocks.load("examples/composition.xml")
   ui[4] = Blocks.load("examples/flex.xml")
-  ui[5] = loadCounter()
+  ui[5] = Blocks.load("examples/three-columns.xml")
+  ui[6] = loadCounter()
 end
 
 function love.update(dt)

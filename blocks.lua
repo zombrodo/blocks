@@ -637,8 +637,12 @@ function XMLParser.parse(xmlString, context)
     -- CLOSING TAGS
     if tagContent:sub(1, 1) == '/' then
       local tagName = trim(tagContent:sub(2))
-      if #stack > 0 and string.lower(stack[#stack].type) == string.lower(tagName) then
+
+
+      if #stack > 0 and stack[#stack]:is(ComponentRegistry:get(tagName)) then
         table.remove(stack)
+      else
+        error("mismatched cloding tag: " .. tagName)
       end
       -- SELF CLOSING TAGS
     elseif tagContent:sub(-1) == '/' then
