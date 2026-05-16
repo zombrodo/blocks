@@ -1,0 +1,5 @@
+<Flex direction="row" gap="10px" align="center">
+  <Rect id="decrement" basis="30px" h="30px" mode="fill" />
+  <Slot />
+  <Rect id="increment" basis="30px" h="30px" mode="fill" />
+</Flex>

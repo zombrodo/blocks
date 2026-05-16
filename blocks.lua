@@ -50,9 +50,6 @@ end
 
 local function parseValue(str)
   -- TODO: ensure that this isn't a silent error.
-  if not str then
-    return 0, "auto"
-  end
 
   local num, unit = str:match("^%s*(-?[%d.]+)%s*(.-)%s*$")
   return tonumber(num), unit ~= "" and unit or "px"
@@ -125,26 +122,33 @@ local DimensionDispatch = {
   ["auto"] = autoDimension,
 }
 
+
+local DEFAULTS = {
+  x = "0px", y = "0px", w = "100%", h = "100%"
+}
+
 -- TODO: Some nicer error handling wrt to units would be nice.
 
 local function applyLayout(attribute, component)
+  local raw = component.attributes[attribute] or DEFAULTS[attribute]
+
   if attribute == "x" then
-    local value, units = parseValue(component.attributes.x)
+    local value, units = parseValue(raw)
     return PositionDispatch[units](value, attribute, component)
   end
 
   if attribute == "y" then
-    local value, units = parseValue(component.attributes.y)
+    local value, units = parseValue(raw)
     return PositionDispatch[units](value, attribute, component)
   end
 
   if attribute == "w" then
-    local value, units = parseValue(component.attributes.w)
+    local value, units = parseValue(raw)
     return DimensionDispatch[units](value, attribute, component)
   end
 
   if attribute == "h" then
-    local value, units = parseValue(component.attributes.h)
+    local value, units = parseValue(raw)
     return DimensionDispatch[units](value, attribute, component)
   end
 
@@ -154,7 +158,7 @@ end
 local function expandSlot(node, slotContent)
   for i, child in ipairs(node.children) do
     if child.type == "Slot" then
-      table.remove(node.chidlren, i)
+      table.remove(node.children, i)
       for j = #slotContent, 1, -1 do
         slotContent[j].parent = node
         table.insert(node.children, i, slotContent[j])
@@ -189,6 +193,9 @@ function Component:new(componentDef)
   self.children = {}
   self.parent = nil
 
+  self.state = {}
+  self.listeners = {}
+
   -- TODO: This probably belongs in some sorta styling mechanism, rather than here.
   self.font = love.graphics.getFont()
 end
@@ -201,8 +208,13 @@ function Component:expandTemplate(path)
   if not template then
     error("Unable to parse template: " .. path)
   end
-  for _, node in ipairs(template.chldren) do
-    self:addChild(node)
+
+  if template.type == "Fragment" then
+    for _, node in ipairs(template.children) do
+      self:addChild(node)
+    end
+  else
+    self:addChild(template)
   end
 
   if #slotContent > 0 then
@@ -246,6 +258,56 @@ function Component:removeChild(child)
   end
 end
 
+function Component:on(event, callback)
+  self.listeners[event] = self.listeners[event] or {}
+  table.insert(self.listeners[event], callback)
+end
+
+function Component:emit(event, ...)
+  if not self.listeners[event] then
+    return
+  end
+
+  for _, cb in ipairs(self.listeners[event]) do
+    cb(...)
+  end
+end
+
+function Component:find(id)
+  for _, child in ipairs(self.children) do
+    if child.attributes.id == id then
+      return child
+    end
+    local found = child:find(id)
+    if found then
+      return found
+    end
+  end
+end
+
+function Component:inBounds(x, y)
+  return x >= self.x and x <= self.x + self.w
+      and y >= self.y and y <= self.y + self.h
+end
+
+function Component:hitTest(x, y, depth)
+  depth = (depth or 0) + 1
+  if not self:inBounds(x, y) then
+    return nil
+  end
+
+  assert(depth < 100, "hitTest cycle near " .. tostring(self.type))
+
+  for i = #self.children, 1, -1 do
+    local hit = self.children[i]:hitTest(x, y, depth)
+    if hit then
+      return hit
+    end
+  end
+
+  return self
+end
+
 function Component:update(dt)
   for i, child in ipairs(self.children) do
     child:update(dt)
@@ -255,6 +317,27 @@ end
 function Component:draw()
   for i, child in ipairs(self.children) do
     child:draw()
+  end
+end
+
+function Component:hook()
+  local oldMousePressed = love.mousepressed
+  love.mousepressed = function(x, y, button)
+    local hit = self:hitTest(x, y)
+    if not hit then
+      return
+    end
+
+    local node = hit
+    while node do
+      if node.listeners["click"] then
+        if node:emit("click", x, y) == false then
+          break
+        end
+      end
+      node = node.parent
+    end
+    oldMousePressed(x, y, button)
   end
 end
 
@@ -1036,6 +1119,12 @@ function Blocks.load(xmlFile)
   end
 
   return tree
+end
+
+function Blocks.component(name)
+  local component = Component:extend()
+  ComponentRegistry:add(name, component)
+  return component
 end
 
 return Blocks

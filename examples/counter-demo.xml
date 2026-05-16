@@ -1,0 +1,6 @@
+<>
+  <Text x="0" y="0">#5: Counter</Text>
+  <Counter x="40%" y="40%" w="20%" h="50px" id="counter">
+    <Text>{value}</Text>
+  </Counter>
+</>
